@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
-import os,  mmap, argparse, re, base64, sys
+import os,  mmap, argparse, re, base64, sys, socket, ssl
 from termcolor import colored, cprint
+from os import listdir
+from os.path import isfile, join
+
 
 protocols = {}
 flaws = {}
@@ -13,9 +16,66 @@ configurations = {}
 def scan(scandir, iplist, testssl):
     with open(iplist, 'r') as f:
             for ip in f:
-                cprint("[-] Scanning {}".format(ip[:-1]), 'blue')
-                os.system("{} --color 0 {} > {}/{}.txt".format(testssl, ip[:-1], scandir, ip[:-1]))  
-                cprint("[-] {} scan done".format(ip[:-1]), 'green')
+                if ip[-1]=="\n":
+                    ip=ip[:-1]
+                if((testConnection(ip))==0):
+                    cprint("[-] Scanning {}".format(ip), 'blue')
+                    os.system("{} --color 0 {} > {}/TestSSLscans/{}.txt".format(testssl, ip, scandir, ip))  
+                    cprint("[+] {} scan done".format(ip), 'green')
+
+
+"""
+The function is here to test if the remote server got is port open, the domain name is valid and if 
+it's offering SSL/TLS. The dunction will return:
+0 if everything is good
+1 if the port is not open
+2 if ssl is not offered
+"""
+def sslConnect(server, port):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(3)
+    wrappedSocket = ssl.wrap_socket(sock)
+    try:
+        wrappedSocket.connect((server,port))
+    except (ssl.SSLError, socket.timeout, ConnectionRefusedError) as err:
+        if str(err) == "timed out":
+            cprint("[+] {} Port not open, timed out".format(server, port), 'red')
+            sock.close()
+            return 1
+        if re.compile("WRONG_VERSION_NUMBER").search(str(err),1):
+            cprint("[+] {}:{} Remote server doesn't offer SSL/TLS connection".format(server, port), 'red')
+            sock.close()
+            return 2
+        if re.compile("Connection refused").search(str(err),1):
+            cprint("[+] {}:{} Connection refused by remote server".format(server, port), 'red')
+            sock.close()
+            return 1
+    sock.close()
+    return 0
+
+
+
+"""
+The function is here to test if the remote server got is port open, the domain name is valid and if 
+it's offering SSL/TLS. The dunction will return:
+0 if everything is good
+1 if the port is not open
+2 if ssl is not offered
+3 if the domain name is invalid
+"""
+def testConnection(IP):
+    serverInfo = IP.split(':')
+    if(not(re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$",serverInfo[0]))):
+        try:
+            if (len(socket.gethostbyname(serverInfo[0]))<1):
+                cprint("[-] {} is a valid domain name".format(serverInfo[0]), 'blue')
+        except:
+            cprint("[+] {} domain name unresolved".format(serverInfo[0]), 'red')
+            return 3
+    if(len(serverInfo)>1):
+        return sslConnect(serverInfo[0],int(serverInfo[1]))
+    else:
+        return sslConnect(serverInfo[0],443)
 
 
 
@@ -74,24 +134,23 @@ def AnalyzeCertificates(data, scandir, ip):
 
 
 def createDirectories(scandir):
-    DirNames = ["Protocols","CipherSuites","Flaws","Certificates","Configurations"]
+    DirNames = ["Protocols","CipherSuites","Flaws","Certificates","Configurations", "TestSSLscans"]
     for Dir in DirNames:
         if(os.path.isdir("{}/{}".format(scandir,Dir)) == False):
             os.mkdir("{}/{}".format(scandir,Dir))
 
 def AnalyzeScanFile(scandir, iplist):
     cprint("[-] Starting analyzing testssl.sh result files", 'blue')
-    createDirectories(scandir)
-    with open(iplist, 'r') as f:
-        for ip in f:
-            with open("{}/{}.txt".format(scandir,ip[:-1]), 'r') as scan:
+    scanFiles = [f for f in listdir("{}/TestSSLscans".format(scandir)) if isfile(join("{}/TestSSLscans".format(scandir), f))]
+    for scanFile in scanFiles:
+            with open("{}/TestSSLscans/{}".format(scandir,scanFile), 'r') as scan:
                 data = scan.read()
-                  
-                AnalyzeProtocols(data, scandir, ip)
-                AnalyzeFlaws(data, scandir, ip)
-                AnalyzeCiphers(data, scandir, ip)
-                AnalyzeCertificates(data, scandir, ip)
-                AnalyzeConfigurations(data, scandir, ip)
+                # the scanFile[:-4] to remove the .txt
+                AnalyzeProtocols(data, scandir, scanFile[:-4])
+                AnalyzeFlaws(data, scandir, scanFile[:-4])
+                AnalyzeCiphers(data, scandir, scanFile[:-4])
+                AnalyzeCertificates(data, scandir, scanFile[:-4])
+                AnalyzeConfigurations(data, scandir, scanFile[:-4])
     cprint("[+] Analyze done", 'blue')
     print()
     cprint("[+] All result can be found in {}".format(scandir), 'white')
@@ -159,6 +218,7 @@ def config():
 def main(scandir, iplist, testssl):
     printStartMessage()
     config()
+    createDirectories(scandir)
     try:
         scan(scandir, iplist, testssl)
         AnalyzeScanFile(scandir, iplist)
