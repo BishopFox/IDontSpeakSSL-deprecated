@@ -1,4 +1,4 @@
-EXPIRED,CertificateExpired.txt,Q2VydGlmaWNhdGUgVmFsaWRpdHkgXChVVENcKSArZXhwaXJlZA==
-SERVERKEYSIZE,ServerKeySize.txt,U2VydmVyIGtleSBzaXplICtSU0EgKD8hMjA0OHw0MDk2fDgxOTIp
-SIGNALGO,SignatureAlgorithm.txt,U2lnbmF0dXJlIEFsZ29yaXRobSArKD86TUQ1fFNIQTEp
-HOSTNAME,HostnameDoNotMatchURI.txt,VHJ1c3QgXChob3N0bmFtZVwpICtjZXJ0aWZpY2F0ZSBkb2VzIG5vdCBtYXRjaCBzdXBwbGllZCBVUkk=
+EXPIRED,CertificateExpired.txt,Q2VydGlmaWNhdGUgVmFsaWRpdHkgXChVVENcKSArZXhwaXJlZA==,Expired certificate,The certificate is expired and should not be trusted
+SERVERKEYSIZE,ServerKeySize.txt,U2VydmVyIGtleSBzaXplICtSU0EgKD8hMjA0OHw0MDk2fDgxOTIp,Insufficient Certificate Key Size,The key used by the server is too small. The size of the key should at least be 2048 bits
+SIGNALGO,SignatureAlgorithm.txt,U2lnbmF0dXJlIEFsZ29yaXRobSArKD86TUQ1fFNIQTEp,Insecure Certificate Signature Algorithm, The algorithm used to sign the server certificate is not strong enough and modern browser will raise an alert. MD5 and SHA1 should not be used solely.
+HOSTNAME,HostnameDoNotMatchURI.txt,VHJ1c3QgXChob3N0bmFtZVwpICtjZXJ0aWZpY2F0ZSBkb2VzIG5vdCBtYXRjaCBzdXBwbGllZCBVUkk=,Invalid Certificate domain,The hostname in the scope and the domain name in the certificate are not the same.

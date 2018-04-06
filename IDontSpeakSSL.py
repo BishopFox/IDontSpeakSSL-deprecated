@@ -1,27 +1,159 @@
 #!/usr/bin/env python3
 
-import os,  mmap, argparse, re, base64, sys, socket, ssl
+import os,  mmap, argparse, re, base64, sys, socket, ssl, shutil
 from termcolor import colored, cprint
 from os import listdir
 from os.path import isfile, join
+from yattag import Doc, indent
+
+findingConfig = {}
+
+class Report:
+
+    def __init__(self,scanDir,iplist):
+        self.reportDir=scanDir
+        self.iplist=iplist
+        self.doc = Doc()
+        self.tag = self.doc.tag
+        self.line = self.doc.line
+        self.stag = self.doc.stag
+        self.text = self.doc.text
 
 
-protocols = {}
-flaws = {}
-ciphers = {}
-certificates = {}
-configurations = {}
 
+    def createReport(self):
+        print()
+        cprint("[-] Starting the generation of the report", 'blue')
+        self.copyJSCSS()
+        self.doc.asis('<!DOCTYPE html>')
+        with self.tag('html'):
+            self.createHead()
+            self.createBody()
+        self.writeReport()
+        cprint("[+] Report generated", 'green')
+
+    def copyJSCSS(self):
+        if(os.path.isdir("{}/html".format(self.reportDir)) == False):
+            shutil.copytree('resources', "{}/html".format(self.reportDir))
+
+
+
+    def createHead(self):
+        with self.tag('head'):
+            self.line('title', 'IDontSpeakSSL Report')
+            self.stag('link', ("rel", "stylesheet"), ("href", "./html/css/bootstrap.min.css".format(self.reportDir)) )
+            self.line('script', '', src="./html/js/jquery.min.js".format(self.reportDir))
+            self.line('script', '', src="./html/js/bootstrap.min.js".format(self.reportDir))
+            
+
+    def addScope(self):
+        with self.tag('ul'):
+            with open(self.iplist, 'r') as f:
+                for ip in f:
+                    ip=ip.strip()
+                    self.line('li', ip)
+
+    def createBody(self):
+        with self.tag('body'):
+            with self.tag('div', Klass = "container"):
+                self.line('h1', 'IDontSpeakSSL Report') 
+                with self.tag('p'):
+                    self.text('Report of IDontSpeakSSL script, All findings are split into sections.')
+                    self.stag('br')
+                    self.text('The scope given to the script was:')
+                    self.addScope()
+
+
+                self.addSection("Certificate Findings", "Certificates" ,"Certificates", "Finding DB: Insecure SSL/TLS Certificate Configuration")
+                self.addSection("Weak Cipher Suites", "CipherSuites" ,"Ciphers", "Fiding DB - Weak Cryptography")
+                self.addSection("Weak Protocols", "Protocols" ,"Protocols", "Fiding DB - Insecure Network Transmission")
+                self.addSection("Bad Configurations", "Configurations" ,"Configurations", "Fiding DB - Missing Security Headers")
+                self.addSection("Known Vulnerabilities", "Flaws" ,"Flaws", "Fiding DB - Insecure Network Transmission or Weak Cryptography")
+
+
+    def listAssets(self, folder, assetfile):
+        if(os.path.exists( "{}/{}/{}".format(self.reportDir, folder, assetfile))):
+            with self.tag('ul'):
+                with open("{}/{}/{}".format(self.reportDir, folder, assetfile), 'r') as assets:
+                    for asset in assets:
+                        self.line('li', asset )
+
+        else:
+            self.text("No affected location for this finding.")
+
+
+    def addSection(self, SectionName, folder, findingType, findingDBRef):
+        global findingConfig
+        self.line('h2', SectionName)
+        self.line('p', findingDBRef)
+        with self.tag('div'):
+            self.doc.attr(klass='panel-group')
+            findingid=0
+            for finding in (findingConfig[findingType]).keys():
+                if(os.path.exists( "{}/{}/{}".format(self.reportDir, folder,(findingConfig[findingType])[finding][0]))):
+                    with self.tag('div', klass='panel panel-default'):                                                                                                   
+                        with self.tag('div', klass='panel-heading'):
+                            with self.tag('div', klass='panel-title'):
+                                with self.tag('h4', klass='panel-title'):
+                                    with self.tag('a', ("data-toggle", "collapse"), ("href" ,"#{}{}".format(findingType,findingid))):
+                                        self.text("{}".format((findingConfig[findingType])[finding][2]))
+                        with self.tag('div'):                                                                 
+                            self.doc.attr(klass='panel-collapse collapse', id='{}{}'.format(findingType,findingid))    
+                            with self.tag('div', klass='panel-body'):                                            
+                                self.text("{}".format((findingConfig[findingType])[finding][3]))
+                                self.listAssets(folder, (findingConfig[findingType])[finding][0])
+                    findingid+=1
+            if(findingType=="Certificates"):
+                if(os.path.exists( "{}/{}/{}".format(self.reportDir, folder,"TooLongCetificateValidity.txt"))):
+                    self.addCertificateValidity(findingType,findingid, folder)
+                    findingid+=1
+                if(os.path.exists( "{}/{}/{}".format(self.reportDir, folder,"Issuers.txt"))):
+                    self.addCertificateIssuers(findingType,findingid, folder)
+    
+    def addCertificateValidity(self, findingType, findingid, folder):
+        with self.tag('div', klass='panel panel-default'):                                                                                               
+            with self.tag('div', klass='panel-heading'):
+                with self.tag('div', klass='panel-title'):
+                    with self.tag('h4', klass='panel-title'):
+                        with self.tag('a', ("data-toggle", "collapse"), ("href" ,"#{}{}".format(findingType,findingid))):
+                            self.text("{}".format("Certificate With Too Long Validity Period"))
+            with self.tag('div'):                                                                 
+                self.doc.attr(klass='panel-collapse collapse', id='{}{}'.format(findingType,findingid))    
+                with self.tag('div', klass='panel-body'):                                            
+                    self.text("{}".format("Certificate validity period must be limited to 39 months for certificates issued before March 1st, 2018, or 825 days for certificates issued after March 1st, 2018.<br>(https://www.globalsign.com/en/blog/ssl-certificate-validity-capped-at-maximum-two-years/)<br>(https://www.symantec.com/connect/blogs/new-39-month-ssl-certificate-maximum-validity)"))
+                    self.listAssets(folder,"TooLongCetificateValidity.txt")
+
+
+
+    def addCertificateIssuers(self, findingType, findingid, folder):
+        with self.tag('div', klass='panel panel-default'):                                                                                               
+            with self.tag('div', klass='panel-heading'):
+                with self.tag('div', klass='panel-title'):
+                    with self.tag('h4', klass='panel-title'):
+                        with self.tag('a', ("data-toggle", "collapse"), ("href" ,"#{}{}".format(findingType,findingid))):
+                            self.text("{}".format("Certificate Issuers"))
+            with self.tag('div'):                                                                 
+                self.doc.attr(klass='panel-collapse collapse', id='{}{}'.format(findingType,findingid))    
+                with self.tag('div', klass='panel-body'):                                            
+                    self.text("{}".format("Certificates Issuers must be check, all certificates must be issued by a trusted Certificate Authority. The CA could be a knon certificate authorithy such as Symentec, Verisign, etc. or an internal CA. The script is not able to check the CA, you should verified by yourself the issuer."))
+                    self.listAssets(folder,"Issuers.txt" )
+
+
+
+    def writeReport(self):
+        with open("{}/report.html".format(self.reportDir), 'w') as report:
+            report.write(indent(self.doc.getvalue()))
+                
 
 def scan(scandir, iplist, testssl):
     with open(iplist, 'r') as f:
             for ip in f:
-                if ip[-1]=="\n":
-                    ip=ip[:-1]
-                if((testConnection(ip))==0):
-                    cprint("[-] Scanning {}".format(ip), 'blue')
-                    os.system("{} --color 0 {} > {}/TestSSLscans/{}.txt".format(testssl, ip, scandir, ip))  
-                    cprint("[+] {} scan done".format(ip), 'green')
+                ip=ip.strip()
+                if ip!="":
+                    if((testConnection(ip))==0):
+                        cprint("[-] Scanning {}".format(ip), 'blue')
+                        os.system("{} --color 0 {} > {}/TestSSLscans/{}.txt".format(testssl, ip, scandir, ip))  
+                        cprint("[+] {} scan done".format(ip), 'green')
 
 
 """
@@ -84,53 +216,22 @@ def writeResult(filename,ip):
     with open(filename, "a") as resfile:
         resfile.write(ip)
 
+def analyze(findingType, folder, data, scandir, ip):
+    global findingConfig
+    for finding in (findingConfig[findingType]).keys():
+        if re.search(str(base64.b64decode(((findingConfig[findingType])[finding])[1]),'utf-8')  , data):
+            writeResult("{}/{}/{}".format(scandir,folder,((findingConfig[findingType])[finding])[0],folder),"{}\n".format(ip))
 
-def AnalyzeConfigurations(data, scandir, ip):
-    global configurations
-    ###  Configuration Check
-    for config in configurations.keys():
-        if re.search(str(base64.b64decode((configurations[config])[1]),'utf-8')  , data):
-            writeResult("{}/Configurations/{}".format(scandir,(configurations[config])[0]),ip)
-
-
-def AnalyzeProtocols(data, scandir, ip):
-    global protocols
-    ###  Weak protocols Check
-    for proto in protocols.keys():
-        if re.search(str(base64.b64decode((protocols[proto])[1]),'utf-8')  , data):
-            writeResult("{}/Protocols/{}".format(scandir,(protocols[proto])[0]),ip)
-
-
-def AnalyzeFlaws(data, scandir, ip):
-    global flaws
-    ###  Flaws Check
-    for flaw in flaws.keys():
-        if re.search(str(base64.b64decode((flaws[flaw])[1]),'utf-8')  , data):
-            writeResult("{}/Flaws/{}".format(scandir,(flaws[flaw])[0]),ip)
-
-def AnalyzeCiphers(data, scandir, ip):
-    global ciphers
-    ###  Cipher algorithms Check
-    for cipher in ciphers.keys():
-        if re.search(str(base64.b64decode((ciphers[cipher])[1]),'utf-8')  , data):
-            writeResult("{}/CipherSuites/{}".format(scandir,(ciphers[cipher])[0]),ip)
-
-
-def AnalyzeCertificates(data, scandir, ip):
-    global certificates
+def AnalyzeCertificates(folder, data, scandir, ip):
     ###  Certificates Check
     try:
         Days = int((re.findall('Certificate Validity \(UTC\) +(?:(\d+)|expired)', data))[0])
         if(Days > 1186):
-            writeResult("{}/Certificates/{}".format(scandir,'TooLongCetificateValidity.txt'),ip)
+            writeResult("{}/{}/{}".format(scandir,folder,'TooLongCetificateValidity.txt'),"{}\n".format(ip))
     except:
         pass
     Issuer = (re.findall('Issuer +(.+)', data))[0]
-    writeResult("{}/Certificates/{}".format(scandir,'Issuer.txt'),"{}\t\t\t{}\n".format(ip[:-1], Issuer))
-
-    for certificate in certificates.keys():
-        if re.search(str(base64.b64decode((certificates[certificate])[1]),'utf-8')  , data):
-            writeResult("{}/Certificates/{}".format(scandir,(certificates[certificate])[0]),ip)
+    writeResult("{}/{}/{}".format(scandir,folder,'Issuers.txt'),"{}\t\t\t{}\n".format(ip.strip(), Issuer))
 
 
 def createDirectories(scandir):
@@ -146,51 +247,37 @@ def AnalyzeScanFile(scandir, iplist):
             with open("{}/TestSSLscans/{}".format(scandir,scanFile), 'r') as scan:
                 data = scan.read()
                 # the scanFile[:-4] to remove the .txt
-                AnalyzeProtocols(data, scandir, scanFile[:-4])
-                AnalyzeFlaws(data, scandir, scanFile[:-4])
-                AnalyzeCiphers(data, scandir, scanFile[:-4])
-                AnalyzeCertificates(data, scandir, scanFile[:-4])
-                AnalyzeConfigurations(data, scandir, scanFile[:-4])
+                analyze('Protocols', 'Protocols', data, scandir, scanFile[:-4])
+                analyze('Ciphers', 'CipherSuites', data, scandir, scanFile[:-4])
+                analyze('Flaws', 'Flaws', data, scandir, scanFile[:-4])
+                analyze('Certificates', 'Certificates', data, scandir, scanFile[:-4])
+                analyze('Configurations', 'Configurations', data, scandir, scanFile[:-4])
+                AnalyzeCertificates('Certificates',data, scandir, scanFile[:-4])
     cprint("[+] Analyze done", 'blue')
     print()
-    cprint("[+] All result can be found in {}".format(scandir), 'white')
+    cprint("[+] All results could be found in {}/report.html".format(scandir), 'white')
 
 
-def  configProtocols():
-    global protocols
-    with open('config/protocols.csv', 'r') as f:
+def doConfig():
+    global findingConfig
+    cprint("[-] Loading Certificate findings", 'blue')
+    findingConfig['Certificates'] = getConfigFromFile('config/certificates.csv')
+    cprint("[-] Loading Protocol findings", 'blue')
+    findingConfig['Protocols'] = getConfigFromFile('config/protocols.csv')
+    cprint("[-] Loading Flaw findings", 'blue')
+    findingConfig['Flaws'] = getConfigFromFile('config/flaws.csv')
+    cprint("[-] Loading Cipher findings", 'blue')
+    findingConfig['Ciphers'] = getConfigFromFile('config/ciphers.csv')
+    cprint("[-] Loading Configuration findings", 'blue')
+    findingConfig['Configurations'] = getConfigFromFile('config/configurations.csv')
+
+def getConfigFromFile(configfile):
+    findingConfig = {}
+    with open(configfile, 'r') as f:
         for line in f:
-            elems = (line[:-1]).split(',')
-            protocols[elems[0]] = [elems[1] , elems[2]]
-
-def  configFlaws():
-    global flaws
-    with open('config/flaws.csv', 'r') as f:
-        for line in f:
-            elems = (line[:-1]).split(',')
-            flaws[elems[0]] = [elems[1] , elems[2]]
-
-def  configCiphers():
-    global ciphers
-    with open('config/ciphers.csv', 'r') as f:
-        for line in f:
-            elems = (line[:-1]).split(',')
-            ciphers[elems[0]] = [elems[1] , elems[2]]
-
-
-def  configCertificates():
-    global certificates
-    with open('config/certificates.csv', 'r') as f:
-        for line in f:
-            elems = (line[:-1]).split(',')
-            certificates[elems[0]] = [elems[1] , elems[2]]
-
-def configConfigurations():
-    global configurations
-    with open('config/configurations.csv', 'r') as f:
-        for line in f:
-            elems = (line[:-1]).split(',')
-            configurations[elems[0]] = [elems[1] , elems[2]]
+            elems = (line.strip()).split(',')
+            findingConfig[elems[0]] = [elems[1] , elems[2], elems[3], elems[4]] 
+    return findingConfig
 
 def printStartMessage():
     cprint("#####################", 'white')
@@ -206,11 +293,7 @@ def printStartMessage():
 
 def config():
     cprint("[-] Loading configuration files", 'blue')
-    configProtocols()
-    configFlaws()
-    configCiphers()
-    configCertificates() 
-    configConfigurations()
+    doConfig()
     cprint("[+] Done", 'green')
     print()
 
@@ -218,6 +301,7 @@ def config():
 def main(scandir, iplist, testssl):
     printStartMessage()
     config()
+
     createDirectories(scandir)
     try:
         scan(scandir, iplist, testssl)
@@ -225,6 +309,8 @@ def main(scandir, iplist, testssl):
     except KeyboardInterrupt:
         cprint("Killing script", 'red')
         sys.exit(0)
+    report = Report(scandir, iplist)
+    report.createReport()
 
 
 

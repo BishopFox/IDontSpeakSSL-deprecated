@@ -3,7 +3,9 @@
 IDontSpeakSSL is a simple script to made parse testssl.sh results. It's purpose is to automate the discovery of bad practices on SSL/TLS confiuration, Cipher suites and Certificates.
 It is useful on large scope, for example during internal or large external penetration testing.
 
-To use this tool you need to get testssl.sh first, [testssl.sh](https://testssl.sh/).
+To use this script, you will need to get testssl.sh first, [testssl.sh](https://testssl.sh/).
+
+**IT'S A PYTHON 3 SCRIPT**
 
 ## Usage
 
@@ -11,6 +13,10 @@ This script need 3 argument to run. These areguments are:
 * -t the path to the testssl.sh script
 * -l the path to file containing the list of IP addresses or domain names to scan
 * -d the path to the directory that will be used to save all results of the scans and analyses
+
+```
+python3 -t /path/to/testssl/script/testssl.sh -l scope.txt -d result/directory
+```
 
 
 ## IPs and domain names list
@@ -32,13 +38,12 @@ No protocol should be set a a prefix, as an example https://www.google.com will 
 
 This script will read configuration files located in the config folder. The configuration files are following the CSV format. Each line of is confiuration file splitted in three columns and organized as follow:
 
-| Name of the test | Output file of the test | regular expression base 64 encoded  |
+| Name of the test | Output file of the test | regular expression base 64 encoded  | Title of the finding | Description of the finding |
 
 ## TODO
 
 List of different things to do in order to improve this script:
 * Multi-thread
-* Generate a full report of findings
 * Use ncurse for interfacing
 * Scan elliptic curves, but to patch an elliptic curves you need to recompile openssl
 * ...
