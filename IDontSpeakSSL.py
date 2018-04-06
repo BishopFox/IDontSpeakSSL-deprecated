@@ -303,7 +303,6 @@ def main(scandir, iplist, testssl):
     printStartMessage()
     config()
     
-    """
     createDirectories(scandir)
     try:
         scan(scandir, iplist, testssl)
@@ -311,7 +310,6 @@ def main(scandir, iplist, testssl):
     except KeyboardInterrupt:
         cprint("Killing script", 'red')
         sys.exit(0)
-    """
     report = Report(scandir, iplist)
     report.createReport()
 
