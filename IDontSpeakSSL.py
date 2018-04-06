@@ -55,7 +55,8 @@ class Report:
 
     def createBody(self):
         with self.tag('body'):
-            with self.tag('div', Klass = "container"):
+            with self.tag('div'):
+                self.doc.attr(klass='container')
                 self.line('h1', 'IDontSpeakSSL Report') 
                 with self.tag('p'):
                     self.text('Report of IDontSpeakSSL script, All findings are split into sections.')
@@ -287,7 +288,7 @@ def printStartMessage():
     cprint("#####################", 'white')
     print()
     cprint("It's a script made to parse testssl.sh results", 'white')
-    cprint("and higlthed the important findings that need to be reported", 'white')
+    cprint("and highlight the important findings that need to be reported", 'white')
     cprint("Developed to work with testssl 2.9dev", 'white')
     print()
 
@@ -301,7 +302,8 @@ def config():
 def main(scandir, iplist, testssl):
     printStartMessage()
     config()
-
+    
+    """
     createDirectories(scandir)
     try:
         scan(scandir, iplist, testssl)
@@ -309,6 +311,7 @@ def main(scandir, iplist, testssl):
     except KeyboardInterrupt:
         cprint("Killing script", 'red')
         sys.exit(0)
+    """
     report = Report(scandir, iplist)
     report.createReport()
 
