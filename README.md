@@ -20,6 +20,16 @@ git clone https://github.com/BishopFox/IDontSpeakSSL.git
 git submodule update --init --recursive
 ```
 
+## install requirements
+
+
+To fetch the needed libraries, use the follwoing command:
+
+```
+pip3 -r requirements.txt
+```
+
+
 ## Usage
 
 This script accept the following options:
@@ -27,6 +37,7 @@ This script accept the following options:
 * -f a path to file containing the list of IP addresses or domain names to scan
 * -i a list of IP addresses or domain names to scan
 * -d the path to the directory that will be used to save all results of the scans and analyses
+* -w Number of worker toperform the scans. By default define to 8
 
 
 To run properly, at one of the *-i* or *-f*, or both at the same time, is required.
@@ -37,6 +48,7 @@ python3 -f scope.txt
 python3 -i www.google.com www.facebook.com 10.0.0.1
 python3 -f scope.txt -i www.facebook.com 10.0.0.1
 python3 -f scope.txt -d result/directory
+python3 -f scope.txt -d result/directory -w 16
 python3 -t /path/to/testssl/script/testssl.sh -l scope.txt -d result/directory
 ```
 
@@ -60,14 +72,6 @@ No protocol should be set a a prefix, as an example https://www.google.com will 
 This script will read configuration files located in the config folder. The configuration files are following the CSV format. Each line of is confiuration file splitted in three columns and organized as follow:
 
 | Name of the test | Output file of the test | regular expression base 64 encoded  | Title of the finding | Description of the finding |
-
-## TODO
-
-List of different things to do in order to improve this script:
-* Multi-thread
-* Use ncurse for interfacing
-* Scan elliptic curves, but to patch an elliptic curves you need to recompile openssl
-* ...
 
 ## Maintainer
 
