@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import os,  mmap, argparse, re, base64, sys, socket, ssl, shutil
+import os,  mmap, argparse, re, base64, sys, socket, ssl, shutil, time
 from termcolor import colored, cprint
 from os import listdir
 from os.path import isfile, join
@@ -227,8 +227,8 @@ def AnalyzeCertificates(folder, data, scandir, ip):
     ###  Certificates Check
     try:
         Days = int((re.findall('Certificate Validity \(UTC\) +(?:(\d+)|expired)', data))[0])
-        if(Days > 1186):
-            writeResult("{}/{}/{}".format(scandir,folder,'TooLongCetificateValidity.txt'),"{}\n".format(ip))
+        if(Days > 825):
+            writeResult("{}/{}/{}".format(scandir,folder,'TooLongCetificateValidity.txt'),"{}\t{} days\n".format(ip,Days))
     except:
         pass
     Issuer = (re.findall('Issuer +(.+)', data))[0]
@@ -313,16 +313,62 @@ def main(scandir, iplist, testssl):
     report = Report(scandir, iplist)
     report.createReport()
 
+def checkArgd(argd):
+    if argd:
+        if argd != "":
+            if(os.path.isdir("{}".format(argd)) == False):
+                os.mkdir("{}".format(argd))
+            return argd
+    path = os.path.abspath(os.path.dirname(sys.argv[0]))
+    while True:
+        nameDir = "{}_results".format(time.strftime("%Y%m%d%I%M%S%p"))
+        if(os.path.isdir("{}/{}".format(path,nameDir)) == False):
+            os.mkdir("{}/{}".format(path, nameDir))
+            break
+    return "{}/{}".format(path, nameDir)
+
+
+def checkTargets(targetFile, targetList, scanDir):
+    if ( not (targetFile or targetList)):
+        return False
+    if(targetFile):
+        if(targetList):
+            shutil.copyfile(targetFile, "{}/scope.txt".format(scanDir))
+        else:
+            if(os.path.exists(targetFile)):
+                shutil.copyfile(targetFile, "{}/scope.txt".format(scanDir))
+                return "{}/scope.txt".format(scanDir)
+            else:
+                cprint("[-] Target file doesn't exist", 'red')
+                return False
+    with open("{}/scope.txt".format(scanDir), "a") as targets:
+        for target in targetList:
+            targets.write("{}\n".format(target))
+    return "{}/scope.txt".format(scanDir)
+
+def checkTestSSL(testSSL):
+    if testSSL:
+        if(os.path.exists(testSSL)):
+            return testSSL
+        else:
+            cprint("[-] Given path for testssl.sh script is incorrect", 'red')
+            exit()
+    else:
+        return "{}/testssl.sh/testssl.sh".format(os.path.abspath(os.path.dirname(sys.argv[0])))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run test SSL on a IP list')
 
     parser.add_argument('-d', action="store", help="Scans destination directory" , dest="dir", type=str)
-    parser.add_argument('-l', action="store", help="File containing taget ips or domain names list, one per line", dest="iplist", type=str)
+    parser.add_argument('-f', action="store", help="File containing taget IPs or domain names list, one per line", dest="targetFile", type=str)
+    parser.add_argument('-i', action="store", nargs='+', help="List of taget IPs or domain names, separeted by a space", dest="targetList", type=str)
     parser.add_argument('-t', action="store", help="testssl.sh script location", dest="testssl", type=str)
     args = parser.parse_args()
-    if(args.dir and args.iplist and args.testssl):
-        main(args.dir, args.iplist, args.testssl)
+    scanDir = checkArgd(args.dir)
+    targetFile = checkTargets(args.targetFile, args.targetList, scanDir)
+    testSSL = checkTestSSL(args.testssl)
+    if(targetFile):
+        main(scanDir, targetFile, testSSL)
     else:
         parser.print_help(sys.stderr)

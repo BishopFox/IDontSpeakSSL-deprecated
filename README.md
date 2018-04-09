@@ -3,21 +3,42 @@
 IDontSpeakSSL is a simple script to made parse testssl.sh results. It's purpose is to automate the discovery of bad practices on SSL/TLS confiuration, Cipher suites and Certificates.
 It is useful on large scope, for example during internal or large external penetration testing.
 
-To use this script, you will need to get testssl.sh first, [testssl.sh](https://testssl.sh/).
+For more information on testssl.sh see [testssl.sh](https://testssl.sh/).
 
 **IT'S A PYTHON 3 SCRIPT**
 
+## Download the script
+
+The testssl.sh script is embedded as a submodule. In order to properly get IDontSpeakSSL script use the following git commands:
+
+```
+git clone https://github.com/BishopFox/IDontSpeakSSL.git --recursive
+```
+or
+```
+git clone https://github.com/BishopFox/IDontSpeakSSL.git
+git submodule update --init --recursive
+```
+
 ## Usage
 
-This script need 3 argument to run. These areguments are:
-* -t the path to the testssl.sh script
-* -l the path to file containing the list of IP addresses or domain names to scan
+This script accept the following options:
+* -t a path to a specific testssl.sh script (optional)
+* -f a path to file containing the list of IP addresses or domain names to scan
+* -i a list of IP addresses or domain names to scan
 * -d the path to the directory that will be used to save all results of the scans and analyses
 
+
+To run properly, at one of the *-i* or *-f*, or both at the same time, is required.
+Here is some example of the way to use IDontSpeakSSL:
+
 ```
+python3 -f scope.txt
+python3 -i www.google.com www.facebook.com 10.0.0.1
+python3 -f scope.txt -i www.facebook.com 10.0.0.1
+python3 -f scope.txt -d result/directory
 python3 -t /path/to/testssl/script/testssl.sh -l scope.txt -d result/directory
 ```
-
 
 ## IPs and domain names list
 

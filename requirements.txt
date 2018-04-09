@@ -1,2 +1,2 @@
-dnspython3
+termcolor
 yattag
