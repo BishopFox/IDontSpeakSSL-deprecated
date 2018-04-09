@@ -87,6 +87,8 @@ class Report:
 
 
     def addSection(self, SectionName, folder, findingType, findingDBRef):
+        if(len(listdir("{}/{}".format(self.reportDir,folder)))<1):
+            return
         global findingConfig
         self.line('h2', SectionName)
         self.line('p', findingDBRef)

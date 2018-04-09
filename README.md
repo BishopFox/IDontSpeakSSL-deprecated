@@ -44,12 +44,12 @@ To run properly, at one of the *-i* or *-f*, or both at the same time, is requir
 Here is some example of the way to use IDontSpeakSSL:
 
 ```
-python3 -f scope.txt
-python3 -i www.google.com www.facebook.com 10.0.0.1
-python3 -f scope.txt -i www.facebook.com 10.0.0.1
-python3 -f scope.txt -d result/directory
-python3 -f scope.txt -d result/directory -w 16
-python3 -t /path/to/testssl/script/testssl.sh -l scope.txt -d result/directory
+python3 IDontSpeakSSL.py -f scope.txt
+python3 IDontSpeakSSL.py -i www.google.com www.facebook.com 10.0.0.1
+python3 IDontSpeakSSL.py -f scope.txt -i www.facebook.com 10.0.0.1
+python3 IDontSpeakSSL.py -f scope.txt -d result/directory
+python3 IDontSpeakSSL.py -f scope.txt -d result/directory -w 16
+python3 IDontSpeakSSL.py -t /path/to/testssl/script/testssl.sh -l scope.txt -d result/directory
 ```
 
 ## IPs and domain names list
