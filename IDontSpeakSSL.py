@@ -5,6 +5,8 @@ from termcolor import colored, cprint
 from os import listdir
 from os.path import isfile, join
 from yattag import Doc, indent
+from queue import Queue
+from threading import Thread
 
 findingConfig = {}
 
@@ -31,6 +33,7 @@ class Report:
             self.createBody()
         self.writeReport()
         cprint("[+] Report generated", 'green')
+        cprint("[+] All results could be found in {}/report.html".format(self.reportDir), 'green')
 
     def copyJSCSS(self):
         if(os.path.isdir("{}/html".format(self.reportDir)) == False):
@@ -144,17 +147,29 @@ class Report:
     def writeReport(self):
         with open("{}/report.html".format(self.reportDir), 'w') as report:
             report.write(indent(self.doc.getvalue()))
-                
 
-def scan(scandir, iplist, testssl):
+
+
+def scanTarget(queue):
+    ip, testssl, scandir = queue.get()
+    if((testConnection(ip))==0):
+        cprint("[-] Scanning {}".format(ip), 'blue')
+        os.system("{} --color 0 {} > {}/TestSSLscans/{}.txt".format(testssl, ip, scandir, ip))  
+        cprint("[+] {} scan done".format(ip), 'green')
+    queue.task_done()
+
+def scan(scandir, iplist, testssl, nbWorker=8):
+    queue = Queue()
+    for x in range(nbWorker):
+        worker = Thread(target=scanTarget, args=(queue,))
+        worker.setDaemon(True)
+        worker.start()
     with open(iplist, 'r') as f:
-            for ip in f:
-                ip=ip.strip()
-                if ip!="":
-                    if((testConnection(ip))==0):
-                        cprint("[-] Scanning {}".format(ip), 'blue')
-                        os.system("{} --color 0 {} > {}/TestSSLscans/{}.txt".format(testssl, ip, scandir, ip))  
-                        cprint("[+] {} scan done".format(ip), 'green')
+        for ip in f:
+            ip=ip.strip()
+            if ip!="":
+                queue.put((ip, testssl, scandir))
+    queue.join()
 
 
 """
@@ -256,7 +271,6 @@ def AnalyzeScanFile(scandir, iplist):
                 AnalyzeCertificates('Certificates',data, scandir, scanFile[:-4])
     cprint("[+] Analyze done", 'blue')
     print()
-    cprint("[+] All results could be found in {}/report.html".format(scandir), 'white')
 
 
 def doConfig():
@@ -299,17 +313,12 @@ def config():
     print()
 
 
-def main(scandir, iplist, testssl):
+def main(scandir, iplist, testssl, nbWorker):
     printStartMessage()
     config()
-    
     createDirectories(scandir)
-    try:
-        scan(scandir, iplist, testssl)
-        AnalyzeScanFile(scandir, iplist)
-    except KeyboardInterrupt:
-        cprint("Killing script", 'red')
-        sys.exit(0)
+    scan(scandir, iplist, testssl, nbWorker)
+    AnalyzeScanFile(scandir, iplist)
     report = Report(scandir, iplist)
     report.createReport()
 
@@ -364,11 +373,16 @@ if __name__ == "__main__":
     parser.add_argument('-f', action="store", help="File containing taget IPs or domain names list, one per line", dest="targetFile", type=str)
     parser.add_argument('-i', action="store", nargs='+', help="List of taget IPs or domain names, separeted by a space", dest="targetList", type=str)
     parser.add_argument('-t', action="store", help="testssl.sh script location", dest="testssl", type=str)
+    parser.add_argument('-w', action="store", help="number of workers. Number of scan to run at the same time. By default defined to 8", dest="nbWorker", type=int, default=8)
     args = parser.parse_args()
-    scanDir = checkArgd(args.dir)
-    targetFile = checkTargets(args.targetFile, args.targetList, scanDir)
-    testSSL = checkTestSSL(args.testssl)
-    if(targetFile):
-        main(scanDir, targetFile, testSSL)
+    print(args)
+    if ((args.targetFile or args.targetList)):
+        scanDir = checkArgd(args.dir)
+        targetFile = checkTargets(args.targetFile, args.targetList, scanDir)
+        if(targetFile):
+            testSSL = checkTestSSL(args.testssl)
+            main(scanDir, targetFile, testSSL,args.nbWorker)
+        else:
+            parser.print_help(sys.stderr)
     else:
         parser.print_help(sys.stderr)
