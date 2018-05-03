@@ -26,7 +26,7 @@ git submodule update --init --recursive
 To fetch the needed libraries, use the follwoing command:
 
 ```
-pip3 -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 
