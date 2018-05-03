@@ -8,6 +8,7 @@ from yattag import Doc, indent
 from queue import Queue
 from threading import Thread
 
+
 findingConfig = {}
 
 class Report:
@@ -141,7 +142,7 @@ class Report:
             with self.tag('div'):                                                                 
                 self.doc.attr(klass='panel-collapse collapse', id='{}{}'.format(findingType,findingid))    
                 with self.tag('div', klass='panel-body'):                                            
-                    self.text("{}".format("Certificates Issuers must be check, all certificates must be issued by a trusted Certificate Authority. The CA could be a knon certificate authorithy such as Symentec, Verisign, etc. or an internal CA. The script is not able to check the CA, you should verified by yourself the issuer."))
+                    self.text("{}".format("Certificate Issuers must be check from your end, all certificates must be issued by a trusted Certificate Authority. The CA could be a publicly known certificate authorithy such as Symantec, Verisign, etc. or an internal CA."))
                     self.listAssets(folder,"Issuers.txt" )
 
 
@@ -153,25 +154,31 @@ class Report:
 
 
 def scanTarget(queue):
-    ip, testssl, scandir = queue.get()
-    if((testConnection(ip))==0):
-        cprint("[-] Scanning {}".format(ip), 'blue')
-        os.system("{} --color 0 {} > {}/TestSSLscans/{}.txt".format(testssl, ip, scandir, ip))  
-        cprint("[+] {} scan done".format(ip), 'green')
-    queue.task_done()
+    while(not queue.empty()):
+        ip, testssl, scandir, ipid, ipnb = queue.get()
+        if((testConnection(ip))==0):
+            cprint("[-] {}/{} Scanning {}".format(ipid, ipnb, ip), 'blue')
+            os.system("{} --color 0 {} > {}/TestSSLscans/{}.txt".format(testssl, ip, scandir, ip))  
+            cprint("[+] {}/{} {} scan done".format(ipid, ipnb, ip), 'green')
+        queue.task_done()
+    return
 
 def scan(scandir, iplist, testssl, nbWorker=8):
     queue = Queue()
+    ipnb = sum(1 for line in open(iplist))
+    with open(iplist, 'r') as f:
+        i=0
+        for ip in f:
+            ip=ip.strip()
+            if ip!="":
+                queue.put((ip, testssl, scandir, i, ipnb))
+                i+=1
     for x in range(nbWorker):
         worker = Thread(target=scanTarget, args=(queue,))
         worker.setDaemon(True)
         worker.start()
-    with open(iplist, 'r') as f:
-        for ip in f:
-            ip=ip.strip()
-            if ip!="":
-                queue.put((ip, testssl, scandir))
     queue.join()
+    return
 
 
 """
@@ -259,6 +266,7 @@ def createDirectories(scandir):
             os.mkdir("{}/{}".format(scandir,Dir))
 
 def AnalyzeScanFile(scandir, iplist):
+    print()
     cprint("[-] Starting analyzing testssl.sh result files", 'blue')
     scanFiles = [f for f in listdir("{}/TestSSLscans".format(scandir)) if isfile(join("{}/TestSSLscans".format(scandir), f))]
     for scanFile in scanFiles:
@@ -272,12 +280,11 @@ def AnalyzeScanFile(scandir, iplist):
                 analyze('Configurations', 'Configurations', data, scandir, scanFile[:-4])
                 AnalyzeCertificates('Certificates',data, scandir, scanFile[:-4])
     cprint("[+] Analyze done", 'blue')
-    print()
 
 
 def doConfig():
     global findingConfig
-    cprint("[-] Loading Certificate findings", 'blue')
+    cprint("\n[-] Loading Certificate findings", 'blue')
     findingConfig['Certificates'] = getConfigFromFile('config/certificates.csv')
     cprint("[-] Loading Protocol findings", 'blue')
     findingConfig['Protocols'] = getConfigFromFile('config/protocols.csv')
@@ -309,7 +316,7 @@ def printStartMessage():
     print()
 
 def config():
-    cprint("[-] Loading configuration files", 'blue')
+    cprint("[-] Loading configuration all files", 'blue')
     doConfig()
     cprint("[+] Done", 'green')
     print()
