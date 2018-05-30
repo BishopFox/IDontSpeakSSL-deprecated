@@ -69,11 +69,11 @@ class Report:
                     self.addScope()
 
 
-                self.addSection("Certificate Findings", "Certificates" ,"Certificates", "Finding DB: Insecure SSL/TLS Certificate Configuration")
-                self.addSection("Weak Cipher Suites", "CipherSuites" ,"Ciphers", "Fiding DB - Weak Cryptography")
-                self.addSection("Weak Protocols", "Protocols" ,"Protocols", "Fiding DB - Insecure Network Transmission")
-                self.addSection("Bad Configurations", "Configurations" ,"Configurations", "Fiding DB - Missing Security Headers")
-                self.addSection("Known Vulnerabilities", "Flaws" ,"Flaws", "Fiding DB - Insecure Network Transmission or Weak Cryptography")
+                self.addSection("Certificate Findings", "Certificates" ,"Certificates", "Insecure SSL/TLS Certificate Configuration")
+                self.addSection("Weak Cipher Suites", "CipherSuites" ,"Ciphers", "Weak Crypto suites")
+                self.addSection("Weak Protocols", "Protocols" ,"Protocols", "Insecure Network Transmission")
+                self.addSection("Bad Configurations", "Configurations" ,"Configurations", "Missing Security Headers")
+                self.addSection("Known Vulnerabilities", "Flaws" ,"Flaws", "Insecure Network Transmission or Weak Cryptography")
 
 
     def listAssets(self, folder, assetfile):
@@ -384,7 +384,6 @@ if __name__ == "__main__":
     parser.add_argument('-t', action="store", help="testssl.sh script location", dest="testssl", type=str)
     parser.add_argument('-w', action="store", help="number of workers. Number of scan to run at the same time. By default defined to 8", dest="nbWorker", type=int, default=8)
     args = parser.parse_args()
-    print(args)
     if ((args.targetFile or args.targetList)):
         scanDir = checkArgd(args.dir)
         targetFile = checkTargets(args.targetFile, args.targetList, scanDir)
