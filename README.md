@@ -7,6 +7,10 @@ For more information on testssl.sh see [testssl.sh](https://testssl.sh/).
 
 **IT'S A PYTHON 3 SCRIPT**
 
+
+![Usage Example](https://raw.githubusercontent.com/BishopFox/IDontSpeakSSL/master/img/exec.png)
+
+
 ## Download the script
 
 The testssl.sh script is embedded as a submodule. In order to properly get IDontSpeakSSL script use the following git commands:
@@ -72,6 +76,13 @@ No protocol should be set a a prefix, as an example https://www.google.com will 
 This script will read configuration files located in the config folder. The configuration files are following the CSV format. Each line of is confiuration file splitted in three columns and organized as follow:
 
 | Name of the test | Output file of the test | regular expression base 64 encoded  | Title of the finding | Description of the finding |
+
+
+## Report
+
+Here is an example of the report amde by IDontSpeakSSL
+
+![Report](https://raw.githubusercontent/BishopFox/IDontSpeakSSL/master/img/report.png)
 
 ## Maintainer
 
