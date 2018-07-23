@@ -82,7 +82,7 @@ This script will read configuration files located in the config folder. The conf
 
 Here is an example of the report amde by IDontSpeakSSL
 
-![Report](https://raw.githubusercontent/BishopFox/IDontSpeakSSL/master/img/report.png)
+![Report](https://raw.githubusercontent.com/BishopFox/IDontSpeakSSL/master/img/report.png)
 
 ## Maintainer
 
