@@ -13,9 +13,9 @@ findingConfig = {}
 
 class Report:
 
-    def __init__(self,scanDir,iplist):
+    def __init__(self,scanDir, targetlist):
         self.reportDir=scanDir
-        self.iplist=iplist
+        self.targetlist=targetlist
         self.doc = Doc()
         self.tag = self.doc.tag
         self.line = self.doc.line
@@ -52,10 +52,8 @@ class Report:
 
     def addScope(self):
         with self.tag('ul'):
-            with open(self.iplist, 'r') as f:
-                for ip in f:
-                    ip=ip.strip()
-                    self.line('li', ip)
+            for target in self.targetlist:
+                self.line('li', ":".join(target))
 
     def createBody(self):
         with self.tag('body'):
@@ -63,9 +61,9 @@ class Report:
                 self.doc.attr(klass='container')
                 self.line('h1', 'IDontSpeakSSL Report') 
                 with self.tag('p'):
-                    self.text('Report of IDontSpeakSSL script, All findings are split into sections.')
+                    self.text('Report of IDontSpeakSSL script, all findings are splitted into sections.')
                     self.stag('br')
-                    self.text('The scope given to the script was:')
+                    self.text('The scope was:')
                     self.addScope()
 
 
@@ -155,24 +153,21 @@ class Report:
 
 def scanTarget(queue):
     while(not queue.empty()):
-        ip, testssl, scandir, ipid, ipnb = queue.get()
-        if((testConnection(ip))==0):
-            cprint("[-] {}/{} Scanning {}".format(ipid, ipnb, ip), 'blue')
-            os.system("{} --color 0 {} > {}/TestSSLscans/{}.txt".format(testssl, ip, scandir, ip))  
-            cprint("[+] {}/{} {} scan done".format(ipid, ipnb, ip), 'green')
+        target, testssl, scandir, targetid, targetnb = queue.get()
+        cprint("[-] {}/{} Scanning {}".format(targetid, targetnb, target), 'blue')
+        os.system("{} --color 0 {} > {}/TestSSLscans/{}.txt".format(testssl, target, scandir, target))
+        cprint("[+] {}/{} {} scan done".format(targetid, targetnb, target), 'green')
         queue.task_done()
     return
 
-def scan(scandir, iplist, testssl, nbWorker=8):
+def scan(scandir, targetlist, testssl, nbWorker=8):
     queue = Queue()
-    ipnb = sum(1 for line in open(iplist))
-    with open(iplist, 'r') as f:
-        i=0
-        for ip in f:
-            ip=ip.strip()
-            if ip!="":
-                queue.put((ip, testssl, scandir, i, ipnb))
-                i+=1
+    #ipnb = sum(1 for line in open(iplist))
+    targetnb = len(targetlist)-1
+    i=0
+    for target in targetlist:
+        queue.put((":".join(target), testssl, scandir, i, targetnb))
+        i+=1
     for x in range(nbWorker):
         worker = Thread(target=scanTarget, args=(queue,))
         worker.setDaemon(True)
@@ -182,11 +177,10 @@ def scan(scandir, iplist, testssl, nbWorker=8):
 
 
 """
-The function is here to test if the remote server got is port open, the domain name is valid and if 
-it's offering SSL/TLS. The dunction will return:
+Test if the remote server port is open and using SSL/TLS. 
+The function will return:
 0 if everything is good
-1 if the port is not open
-2 if ssl is not offered
+1 if something is wrong
 """
 def sslConnect(server, port):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -194,45 +188,70 @@ def sslConnect(server, port):
     wrappedSocket = ssl.wrap_socket(sock)
     try:
         wrappedSocket.connect((server,port))
-    except (ssl.SSLError, socket.timeout, ConnectionRefusedError) as err:
+    except (ssl.SSLError, socket.timeout, ConnectionRefusedError, ConnectionResetError, OSError) as err:
         if str(err) == "timed out":
-            cprint("[+] {} Port not open, timed out".format(server, port), 'red')
+            cprint("[i] {}:{} Port not open, timed out".format(server, port), 'red')
             sock.close()
-            return 1
+            return 0
         if re.compile("WRONG_VERSION_NUMBER").search(str(err),1):
-            cprint("[+] {}:{} Remote server doesn't offer SSL/TLS connection".format(server, port), 'red')
+            cprint("[i] {}:{} Remote server doesn't offer SSL/TLS connection".format(server, port), 'red')
             sock.close()
-            return 2
+            return 0
         if re.compile("Connection refused").search(str(err),1):
-            cprint("[+] {}:{} Connection refused by remote server".format(server, port), 'red')
+            cprint("[i] {}:{} Connection refused by remote server".format(server, port), 'red')
             sock.close()
-            return 1
+            return 0
+        if re.compile("Connection reset by peer").search(str(err),1):
+            cprint("[i] {}:{} Connection reset".format(server, port), 'red')
+            sock.close()
+            return 0
+        if re.compile("The handshake operation timed out").search(str(err),1):
+            cprint("[i] {}:{} Not a valid SSL/TLS server".format(server, port), 'red')
+            sock.close()
+            return 0
+        if re.compile("DH_KEY_TOO_SMALL").search(str(err),1):
+            #cprint("[i] {}:{} DH key too small, but Testssl can do it".format(server, port), 'yellow')
+            pass
+        if re.compile("Errno 0").search(str(err),1):
+            #cprint("[i] {}:{} Old cipher suite not supported by your OS, TestSSL can handle it but if it continiue to fail remove the IP".format(server, port), 'yellow')
+            pass
+        if re.compile("SSLV3_ALERT_HANDSHAKE_FAILURE").search(str(err),1):
+            #cprint("[i] {}:{} Handshake failure, but Testssl can do it".format(server, port), 'yellow')
+            pass
     sock.close()
-    return 0
 
+    return 1
 
 
 """
-The function is here to test if the remote server got is port open, the domain name is valid and if 
-it's offering SSL/TLS. The dunction will return:
-0 if everything is good
-1 if the port is not open
-2 if ssl is not offered
-3 if the domain name is invalid
+Verify domain name
+0 invalid domain name, no resolution
+1 valid domain name
 """
-def testConnection(IP):
-    serverInfo = IP.split(':')
-    if(not(re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$",serverInfo[0]))):
-        try:
-            if (len(socket.gethostbyname(serverInfo[0]))<1):
-                cprint("[-] {} is a valid domain name".format(serverInfo[0]), 'blue')
-        except:
-            cprint("[+] {} domain name unresolved".format(serverInfo[0]), 'red')
-            return 3
-    if(len(serverInfo)>1):
-        return sslConnect(serverInfo[0],int(serverInfo[1]))
-    else:
-        return sslConnect(serverInfo[0],443)
+def testDomainName(target):
+    try:
+        socket.gethostbyname(target)
+    except:
+        cprint("[+] {} domain name unresolved".format(target), 'red')
+        return 0
+    return 1
+
+
+"""
+Verify if the remote server porti is open, domain name is valid and if 
+it's offering SSL/TLS:
+0 something is wrong
+1 everything is good
+"""
+def testConnection(target):
+    if(not(re.match(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$",target[0]))):
+        if testDomainName(target[0]):
+            return sslConnect(target[0],int(target[1]))
+        else:
+            return 0
+    return sslConnect(target[0],int(target[1]))
+    
+
 
 
 
@@ -265,7 +284,7 @@ def createDirectories(scandir):
         if(os.path.isdir("{}/{}".format(scandir,Dir)) == False):
             os.mkdir("{}/{}".format(scandir,Dir))
 
-def AnalyzeScanFile(scandir, iplist):
+def AnalyzeScanFile(scandir):
     print()
     cprint("[-] Starting analyzing testssl.sh result files", 'blue')
     scanFiles = [f for f in listdir("{}/TestSSLscans".format(scandir)) if isfile(join("{}/TestSSLscans".format(scandir), f))]
@@ -310,25 +329,44 @@ def printStartMessage():
     cprint("#                   #", 'white')
     cprint("#####################", 'white')
     print()
-    cprint("It's a script made to parse testssl.sh results", 'white')
-    cprint("and highlight the important findings that need to be reported", 'white')
+    cprint("IDontSpeakSSL is a simple script to parse testssl.sh results", 'white')
+    cprint("and highlight important findings that need to be reported.", 'white')
     cprint("Developed to work with testssl 2.9dev", 'white')
     print()
 
 def config():
-    cprint("[-] Loading configuration all files", 'blue')
+    cprint("[-] Loading all configuration files", 'blue')
     doConfig()
     cprint("[+] Done", 'green')
     print()
 
+def prepareTargetList(path):
+    targetlist=[]
+    i=0
+    cprint("Reviewing target list", 'blue')
+    with open(path,'r') as targetfile:
+        for target in targetfile:
+            target =target.strip()
+            if target !="":
+                t = target.split(":")
+                if len(t)==1:
+                    t.append("443")
+                if(testConnection(t)):
+                    
+                    targetlist.append(t)
+                i+=1
+    cprint("Target list reduced to {} out of {}".format(len(targetlist),i), 'blue')
+    return targetlist
 
 def main(scandir, iplist, testssl, nbWorker):
     printStartMessage()
     config()
+    # TODO check if list is coming from a file or cli
+    targetlist = prepareTargetList(iplist)
     createDirectories(scandir)
-    scan(scandir, iplist, testssl, nbWorker)
-    AnalyzeScanFile(scandir, iplist)
-    report = Report(scandir, iplist)
+    scan(scandir, targetlist, testssl, nbWorker)
+    AnalyzeScanFile(scandir)
+    report = Report(scandir, targetlist)
     report.createReport()
 
 def checkArgd(argd):
