@@ -251,11 +251,6 @@ def testConnection(target):
             return 0
     return sslConnect(target[0],int(target[1]))
     
-
-
-
-
-
 def writeResult(filename,ip):
     with open(filename, "a") as resfile:
         resfile.write(ip)
@@ -274,8 +269,9 @@ def AnalyzeCertificates(folder, data, scandir, ip):
             writeResult("{}/{}/{}".format(scandir,folder,'TooLongCetificateValidity.txt'),"{}\t{} days\n".format(ip,Days))
     except:
         pass
-    Issuer = (re.findall('Issuer +(.+)', data))[0]
-    writeResult("{}/{}/{}".format(scandir,folder,'Issuers.txt'),"{}\t\t\t{}\n".format(ip.strip(), Issuer))
+    if(len(re.findall('Issuer +(.+)', data))>0):
+        Issuer = (re.findall('Issuer +(.+)', data))[0]
+        writeResult("{}/{}/{}".format(scandir,folder,'Issuers.txt'),"{}\t\t\t{}\n".format(ip.strip(), Issuer))
 
 
 def createDirectories(scandir):
@@ -340,9 +336,12 @@ def config():
     cprint("[+] Done", 'green')
     print()
 
-def prepareTargetList(path):
+def prepareTargetList(path, iplist):
+    print(iplist)
+
     targetlist=[]
     i=0
+    j=0
     cprint("Reviewing target list", 'blue')
     with open(path,'r') as targetfile:
         for target in targetfile:
@@ -355,19 +354,29 @@ def prepareTargetList(path):
                     
                     targetlist.append(t)
                 i+=1
-    cprint("Target list reduced to {} out of {}".format(len(targetlist),i), 'blue')
+    for target in iplist[0].split(","):
+        if target !="":
+            t = target.split(":")    
+            if len(t)==1:
+                t.append("443")
+            if(testConnection(t)):
+                
+                targetlist.append(t)
+            j+=1
+
+    cprint("Target list reduced to {} out of {}".format(len(targetlist),i+j), 'blue')
     return targetlist
 
-def main(scandir, iplist, testssl, nbWorker):
+def run(scandir, ipfile, iplist, testssl, nbWorker):
     printStartMessage()
     config()
-    # TODO check if list is coming from a file or cli
-    targetlist = prepareTargetList(iplist)
+    targetlist = prepareTargetList(ipfile, iplist)
     createDirectories(scandir)
     scan(scandir, targetlist, testssl, nbWorker)
     AnalyzeScanFile(scandir)
     report = Report(scandir, targetlist)
     report.createReport()
+
 
 def checkArgd(argd):
     if argd:
@@ -413,22 +422,61 @@ def checkTestSSL(testSSL):
         return "{}/testssl.sh/testssl.sh".format(os.path.abspath(os.path.dirname(sys.argv[0])))
 
 
+def generateList(scopePath):
+    targetList = []
+    with open(scopePath, "r") as targets:
+        for target in targets:
+            target=(target.strip()).split(":")
+            if target[1]=="":
+                targetList.append([target[0],"443"])
+            else:
+                targetList.append([target[0],target[1]])
+    return targetList
+
+
+def clearFolder(path):
+    if(os.path.isdir(path)):
+        for f in os.listdir(path):
+            if(f != "SecureClientInitiatedRenegotiation.txt"):
+                os.remove("{}/{}".format(path, f))
+
+def clearAnalyzeFolder(path):
+    clearFolder("{}/Certificates/".format(path))
+    clearFolder("{}/CipherSuites/".format(path))
+    clearFolder("{}/Configurations/".format(path))
+    clearFolder("{}/Flaws/".format(path))
+    clearFolder("{}/Protocols/".format(path))
+
+def generateReportFromScan(path):
+    # Implement checks on file exist and might need to remove the generated
+    targetlist = generateList("{}/scope.txt".format(path))
+    config()
+    clearAnalyzeFolder(path)
+    AnalyzeScanFile(path)
+    report = Report(path, targetlist)
+    report.createReport()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run test SSL on a IP list')
 
     parser.add_argument('-d', action="store", help="Scans destination directory" , dest="dir", type=str)
     parser.add_argument('-f', action="store", help="File containing taget IPs or domain names list, one per line", dest="targetFile", type=str)
-    parser.add_argument('-i', action="store", nargs='+', help="List of taget IPs or domain names, separeted by a space", dest="targetList", type=str)
+    parser.add_argument('-i', action="store", nargs='+', help="List of taget IPs or domain names, separeted by a coma", dest="targetList", type=str)
     parser.add_argument('-t', action="store", help="testssl.sh script location", dest="testssl", type=str)
     parser.add_argument('-w', action="store", help="number of workers. Number of scan to run at the same time. By default defined to 8", dest="nbWorker", type=int, default=8)
+    parser.add_argument('-r', action="store", help="Generate a report from scan files. Take a path to the scan folder.", dest="report", type=str)
     args = parser.parse_args()
-    if ((args.targetFile or args.targetList)):
-        scanDir = checkArgd(args.dir)
-        targetFile = checkTargets(args.targetFile, args.targetList, scanDir)
-        if(targetFile):
-            testSSL = checkTestSSL(args.testssl)
-            main(scanDir, targetFile, testSSL,args.nbWorker)
+    if (args.report):
+        generateReportFromScan(args.report)
+    else:
+        if ((args.targetFile or args.targetList)):                               
+            scanDir = checkArgd(args.dir)
+            targetFile = checkTargets(args.targetFile, args.targetList, scanDir)
+            if(targetFile):
+                testSSL = checkTestSSL(args.testssl)
+                run(scanDir, targetFile, args.targetList, testSSL,args.nbWorker)
+            else:
+                parser.print_help(sys.stderr)
         else:
             parser.print_help(sys.stderr)
-    else:
-        parser.print_help(sys.stderr)

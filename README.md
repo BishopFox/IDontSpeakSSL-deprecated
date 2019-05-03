@@ -44,8 +44,8 @@ Here are some examples of how to use IDontSpeakSSL:
 
 ```
 python3 IDontSpeakSSL.py -f scope.txt
-python3 IDontSpeakSSL.py -i www.google.com www.facebook.com 10.0.0.1
-python3 IDontSpeakSSL.py -f scope.txt -i www.facebook.com 10.0.0.1
+python3 IDontSpeakSSL.py -i www.google.com,www.facebook.com,10.0.0.1
+python3 IDontSpeakSSL.py -f scope.txt -i www.facebook.com,10.0.0.1
 python3 IDontSpeakSSL.py -f scope.txt -d result/directory
 python3 IDontSpeakSSL.py -f scope.txt -d result/directory -w 16
 python3 IDontSpeakSSL.py -t /path/to/testssl/script/testssl.sh -l scope.txt -d result/directory
