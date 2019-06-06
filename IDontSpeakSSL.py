@@ -354,15 +354,16 @@ def prepareTargetList(path, iplist):
                     
                     targetlist.append(t)
                 i+=1
-    for target in iplist[0].split(","):
-        if target !="":
-            t = target.split(":")    
-            if len(t)==1:
-                t.append("443")
-            if(testConnection(t)):
-                
-                targetlist.append(t)
-            j+=1
+    if iplist!=None:
+        for target in iplist[0].split(","):
+            if target !="":
+                t = target.split(":")    
+                if len(t)==1:
+                    t.append("443")
+                if(testConnection(t)):
+                    
+                    targetlist.append(t)
+                j+=1
 
     cprint("Target list reduced to {} out of {}".format(len(targetlist),i+j), 'blue')
     return targetlist
