@@ -1,2 +1,5 @@
-termcolor
 yattag
+termcolor
+click
+sslyze
+
