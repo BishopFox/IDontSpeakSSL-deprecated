@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
 from idontspeakssl.common.utils  import prepare_output_directory
-from idontspeakssl.common.printer  import print_start_message
+from idontspeakssl.common.printer import print_start_message
 from idontspeakssl.modules.idontspeakssl_scanner import IDontSpeaksSSLScanner
+from idontspeakssl.modules.idontspeakssl_analyzer import IDontSpeaksSSLAnalyzer
 import os,  mmap, re, base64, sys, socket, ssl, shutil, time
 from termcolor import colored, cprint
 from os import listdir
@@ -12,64 +13,7 @@ import click
 
 
 findingConfig = {}
-
     
-def writeResult(filename,ip):
-    with open(filename, "a") as resfile:
-        resfile.write(ip)
-
-def analyze(findingType, folder, data, scandir, ip):
-    global findingConfig
-    for finding in (findingConfig[findingType]).keys():
-        if re.search(str(base64.b64decode(((findingConfig[findingType])[finding])[1]),'utf-8')  , data):
-            writeResult("{}/{}/{}".format(scandir,folder,((findingConfig[findingType])[finding])[0],folder),"{}\n".format(ip))
-
-def AnalyzeCertificates(folder, data, scandir, ip):
-    ###  Certificates Check
-    try:
-        Days = int((re.findall('Certificate Validity \(UTC\) +(?:(\d+)|expired)', data))[0])
-        if(Days > 825):
-            writeResult("{}/{}/{}".format(scandir,folder,'TooLongCetificateValidity.txt'),"{}\t{} days\n".format(ip,Days))
-    except:
-        pass
-    if(len(re.findall('Issuer +(.+)', data))>0):
-        Issuer = (re.findall('Issuer +(.+)', data))[0]
-        writeResult("{}/{}/{}".format(scandir,folder,'Issuers.txt'),"{}\t\t\t{}\n".format(ip.strip(), Issuer))
-
-def AnalyzeScanFile(scandir):
-    print()
-    cprint("[-] Starting analyzing testssl.sh result files", 'blue')
-    scanFiles = [f for f in listdir("{}/TestSSLscans".format(scandir)) if isfile(join("{}/TestSSLscans".format(scandir), f))]
-    for scanFile in scanFiles:
-            with open("{}/TestSSLscans/{}".format(scandir,scanFile), 'r') as scan:
-                data = scan.read()
-                # the scanFile[:-4] to remove the .txt
-                analyze('Protocols', 'Protocols', data, scandir, scanFile[:-4])
-                analyze('Ciphers', 'CipherSuites', data, scandir, scanFile[:-4])
-                analyze('Flaws', 'Flaws', data, scandir, scanFile[:-4])
-                analyze('Certificates', 'Certificates', data, scandir, scanFile[:-4])
-                analyze('Configurations', 'Configurations', data, scandir, scanFile[:-4])
-                AnalyzeCertificates('Certificates',data, scandir, scanFile[:-4])
-    cprint("[+] Analyze done", 'blue')
-
-def checkTargets(targetFile, targetList, scanDir):
-    if ( not (targetFile or targetList)):
-        return False
-    if(targetFile):
-        if(targetList):
-            shutil.copyfile(targetFile, "{}/scope.txt".format(scanDir))
-        else:
-            if(os.path.exists(targetFile)):
-                shutil.copyfile(targetFile, "{}/scope.txt".format(scanDir))
-                return "{}/scope.txt".format(scanDir)
-            else:
-                cprint("[-] Target file doesn't exist", 'red')
-                return False
-    with open("{}/scope.txt".format(scanDir), "a") as targets:
-        for target in targetList:
-            targets.write("{}\n".format(target))
-    return "{}/scope.txt".format(scanDir)
-
 def file_to_target_list(target_file_path):
     target_list = []
     with open(target_file_path,'r') as target_file:
@@ -147,6 +91,8 @@ def run_scanner(output_directory, target_file, target_string, nb_worker, report_
 	result_directory = prepare_output_directory(output_directory, full_target_list)
 	scanner = IDontSpeaksSSLScanner(result_directory, full_target_list, nb_worker)
 	scanner.run()
+	analyzer = IDontSpeaksSSLAnalyzer(result_directory)
+	analyzer.run()
 	#AnalyzeScanFile(scandir)
 	#report = Report(scandir, targetlist)
 	#report.createReport()

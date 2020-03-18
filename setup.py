@@ -13,13 +13,20 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/BishopFox/IDontSpeakSSL",
     packages=find_packages(),
-    package_data={},
+    package_data={'idontspeakssl': [
+		'data/config/*.json',
+		'data/resources/web_report/js/*.js',
+		'data/resources/web_report/css/*.css',
+		'data/resources/bin/*'
+		]},
     include_package_data=True,
     install_requires=[
         "yattag",
         "termcolor",
         "click",
-        "sslyze"
+		"cryptography<2.6",
+        "sslyze",
+		"pyOpenSSL<19.1.0"
     ],
     entry_points = { 
         'console_scripts': [

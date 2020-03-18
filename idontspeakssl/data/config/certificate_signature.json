@@ -1,0 +1,18 @@
+{
+	"good":[
+		"sha256WithRSAEncryption",
+		"sha384WithRSAEncryption",
+		"sha512WithRSAEncryption",
+		"ecdsa-with-SHA256",
+		"ecdsa-with-SHA384",
+		"ecdsa-with-SHA512",
+		"RSASSA-PSS"
+	],
+	"bad":[
+		"md5WithRSAEncryption",
+		"sha1WithRSAEncryption",
+		"dsaWithSHA1",
+		"dsa_with_SHA256",
+		"ecdsa-with-SHA1"
+	]
+}

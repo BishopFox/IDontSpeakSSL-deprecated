@@ -1,1 +1,0 @@
-HSTS,HSTS.txt,U3RyaWN0IFRyYW5zcG9ydCBTZWN1cml0eSArLS0=,HSTS Missing,The Strict-Transport-Security header is not sent by the web server. This header can be used to restrict the domains for which JavaScript can be rendered in the browser. This helps protect against cross-site scripting and other content injection attacks.

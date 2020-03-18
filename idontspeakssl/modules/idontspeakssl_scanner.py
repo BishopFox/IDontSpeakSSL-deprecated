@@ -14,6 +14,7 @@ from sslyze.plugins.robot_plugin import RobotScanCommand
 from sslyze.plugins.session_renegotiation_plugin import SessionRenegotiationScanCommand
 from sslyze.plugins.session_resumption_plugin import SessionResumptionSupportScanCommand
 from sslyze.synchronous_scanner import SynchronousScanner
+from cryptography.hazmat.primitives.serialization import Encoding
 
 
 class IDontSpeaksSSLScanner():
@@ -56,9 +57,10 @@ class IDontSpeaksSSLScanner():
 			for cipher in scan_result.accepted_cipher_list:
 				ciphers.append({
 						"name":cipher.name,
-						"key size":cipher.key_size
+						"key_size":cipher.key_size
 					})
 			cipher_scan_results[scan_result.scan_command.get_title()] = ciphers
+		#print('ciphers obtained for ',server_info)
 		return cipher_scan_results
 
 	def run_certificate_command(self, server_info, synchronous_scanner):
@@ -67,69 +69,100 @@ class IDontSpeaksSSLScanner():
 		scan_result = synchronous_scanner.run_scan_command(server_info, command)
 		i=0
 		for certificate in scan_result.received_certificate_chain:
-			certificate_chain[i] = certificate
+			certificate_chain[i] = {"pem":certificate.public_bytes(Encoding.PEM).decode("ascii")}
+			if(i > 0):
+				certificate_chain[i]['is_CA'] = True
+			else:
+				certificate_chain[i]['is_CA'] = False
 			i += 1
+		trusted_chain = False
+		if(scan_result.verified_certificate_chain):
+			trusted_chain = True
+		result_by_trusted_store = {}
+		for store_result in scan_result.path_validation_result_list:
+			store_name  = store_result.trust_store.name  + store_result.trust_store.version
+			result_by_trusted_store[store_name] = store_result.was_validation_successful
+		return {"certificate_chain":certificate_chain,
+			"is_chain_trusted": trusted_chain,
+			"oscp_response":scan_result.ocsp_response_is_trusted,
+			"result_by_trusted_store": result_by_trusted_store}
+
 
 	def run_compression_command(self, server_info, synchronous_scanner):
 		command = CompressionScanCommand()
 		try:
 			scan_result = synchronous_scanner.run_scan_command(server_info, command)
+			#print('Compression obtained for ',server_info)
 			return scan_result.compression_name
 		except:
+			#print('Compression obtained for ',server_info)
 			return None
 
 	def run_fallback_scsv_command(self, server_info, synchronous_scanner):
 		command = FallbackScsvScanCommand()
 		try:
 			scan_result = synchronous_scanner.run_scan_command(server_info, command)
+			#print('fallback_scsv obtained for ',server_info)
 			return scan_result.supports_fallback_scsv
 		except:
+			#print('fallback_scsv obtained for ',server_info)
 			return None
 
 	def run_heartbleed_command(self, server_info, synchronous_scanner):
 		command = HeartbleedScanCommand()
 		try:
 			scan_result = synchronous_scanner.run_scan_command(server_info, command)
+			#print('heartbleed obtained for ',server_info)
 			return scan_result.is_vulnerable_to_heartbleed
 		except:
+			#print('heartbleed obtained for ',server_info)
 			return None
 
 	def run_early_data_command(self, server_info, synchronous_scanner):
 		command = EarlyDataScanCommand()
 		try:
 			scan_result = synchronous_scanner.run_scan_command(server_info, command)
+			#print('early_data obtained for ',server_info)
 			return scan_result.is_early_data_supported
 		except:
+			#print('early_data obtained for ',server_info)
 			return None
 
 	def run_openssl_ccs_injection_command(self, server_info, synchronous_scanner):
 		command = OpenSslCcsInjectionScanCommand()
 		try:
 			scan_result = synchronous_scanner.run_scan_command(server_info, command)
+			#print('openssl_ccs_injection obtained for ',server_info)
 			return scan_result.is_vulnerable_to_ccs_injection
 		except:
+			#print('openssl_ccs_injection obtained for ',server_info)
 			return None
 
 	def run_robot_command(self, server_info, synchronous_scanner):
 		command = RobotScanCommand()
 		try:
-			scan_result = synchronous_scanner.run_scan_command(server_info, command)	
+			scan_result = synchronous_scanner.run_scan_command(server_info, command)
+			#print('robot obtained for ',server_info)
 			return scan_result.robot_result_enum.value
 		except:
+			#print('robot obtained for ',server_info)
 			return None
 
 	def run_session_renegotiation_command(self, server_info, synchronous_scanner):
 		command = SessionRenegotiationScanCommand()
 		try:
 			scan_result = synchronous_scanner.run_scan_command(server_info, command)
+			#print('session_renegotiation obtained for ',server_info)
 			return {"supports_secure_renegotiation": scan_result.supports_secure_renegotiation,
 			"accepts_client_renegotiation":scan_result.accepts_client_renegotiation}
 		except:
+			#print('session_renegotiation obtained for ',server_info)
 			return None
 
 	def run_session_resumption_command(self, server_info, synchronous_scanner):
 		command = SessionResumptionSupportScanCommand()
 		scan_result = synchronous_scanner.run_scan_command(server_info, command)
+		#print('session_resumption obtained for ',server_info)
 		return {"errored_resumptions_list":scan_result.errored_resumptions_list,
 			"attempted_resumptions_nb": scan_result.attempted_resumptions_nb,
 			"failed_resumptions_nb": scan_result.failed_resumptions_nb,

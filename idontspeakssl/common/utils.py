@@ -1,5 +1,4 @@
-import os, json, shutil, time
-import fcntl
+import os, json, shutil, time, fcntl, idontspeakssl
 
 def prepare_output_directory(output_path, scope, report_format=None):
 	result_directory = "{}/idontspeakssl_{}_results".format(output_path, time.strftime("%Y%m%d%I%M%S%p"))
@@ -14,9 +13,11 @@ def prepare_output_directory(output_path, scope, report_format=None):
 	init_status_file(result_directory, scope)
 	return result_directory
 
-def copyJSCSS(web_report_output_folder):
-	shutil.copytree('resources', "{}/html".format(web_report_output_folder))
+def get_resource_path(filename):
+	return os.path.join(os.path.dirname(idontspeakssl.__file__), 'data', 'resources', 'bin', filename)
 
+def copyJSCSS(web_report_output_folder):
+	shutil.copytree('resources/web_report', "{}/html".format(web_report_output_folder))
 
 def udpate_status(status_file_path, module_data, module):
 	lock_file_path = "{}.lock".format(status_file_path)
@@ -44,3 +45,20 @@ def init_status_file(result_directory, scope):
 	}
 	with open( status_file_path, 'w') as status_file:
 		json.dump(data, status_file)
+
+def extract_scope_from_status(status_file_path):
+	scope = []
+	with open(status_file_path,'r') as status_file:
+		data = json.load(status_file)
+	for target in data['scope']:
+		scope.append("_".join([target['host'], target['port']]))
+	return scope
+
+def load_json_file(file_path):
+    with open(file_path) as config_file_content:
+        json_data = json.load(config_file_content)
+    return json_data
+
+def load_config_file(filename):
+    file_path = os.path.join(os.path.dirname(idontspeakssl.__file__), 'data', 'config', filename)
+    return load_json_file(file_path)

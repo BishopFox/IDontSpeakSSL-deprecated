@@ -1,0 +1,12 @@
+{
+	"good":[
+		"TLSV1_2 Cipher Suites",
+		"TLSV1_3 Cipher Suites"
+	],
+	"bad":[
+		"SSLV2 Cipher Suites",
+		"SSLV3 Cipher Suites",
+		"TLSV1 Cipher Suites",
+		"TLSV1_1 Cipher Suites"
+	]
+}

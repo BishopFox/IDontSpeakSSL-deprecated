@@ -1,0 +1,6 @@
+{
+	"RSA":2048,
+	"ecdsa":256,
+	"RSASSA-PSS":0,
+	"dsa":0
+}
