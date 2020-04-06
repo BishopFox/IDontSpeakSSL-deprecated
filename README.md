@@ -22,6 +22,7 @@ or
 This script accepts the following options:
 * `-t` Path to a specific testssl.sh script (optional)
 * `-f` Path to a file containing the list of IP addresses or domain names to scan
+* `-n` Path to an XML nmap scan file.
 * `-i` List of IP addresses or domain names to scan
 * `-d` Path to the directory where all results of the scans and analyses will be saved
 * `-w` Number of workers to perform the scans (By default defined to 8)
