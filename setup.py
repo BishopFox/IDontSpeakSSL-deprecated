@@ -25,7 +25,7 @@ setup(
         "termcolor",
         "click",
 		"cryptography<2.6",
-        "sslyze",
+        "sslyze<3.0.0",
 		"pyOpenSSL<19.1.0"
     ],
     entry_points = { 

@@ -19,6 +19,16 @@ def get_resource_path(filename):
 def copyJSCSS(web_report_output_folder):
 	shutil.copytree('resources/web_report', "{}/html".format(web_report_output_folder))
 
+def extract_host_and_port(host_port):
+	temp = host_port.split('_')
+	return temp[0], temp[1]
+
+def capitalize_sentence(sentense):
+	words = sentense.split()
+	for i in range(0, len(words)):
+		words[i] = words[i].capitalize()
+	return " ".join(words)
+
 def udpate_status(status_file_path, module_data, module):
 	lock_file_path = "{}.lock".format(status_file_path)
 	while True:
@@ -39,6 +49,7 @@ def udpate_status(status_file_path, module_data, module):
 def init_status_file(result_directory, scope):
 	status_file_path = "{}/status.json".format(result_directory)
 	data = {
+		"report folder": result_directory,
 		"scope": scope,
 		"scanner results":{},
 		"analyzer results":{}
@@ -62,3 +73,9 @@ def load_json_file(file_path):
 def load_config_file(filename):
     file_path = os.path.join(os.path.dirname(idontspeakssl.__file__), 'data', 'config', filename)
     return load_json_file(file_path)
+
+
+def copy_js_css(report_folder):
+    if(not os.path.isdir("{}/html".format(report_folder))):
+        resources_path = os.path.join(os.path.dirname(idontspeakssl.__file__), 'data', 'resources' , 'web_report')
+        shutil.copytree(resources_path, "{}/html/".format(report_folder))

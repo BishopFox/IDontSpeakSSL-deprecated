@@ -15,7 +15,7 @@ from sslyze.plugins.session_renegotiation_plugin import SessionRenegotiationScan
 from sslyze.plugins.session_resumption_plugin import SessionResumptionSupportScanCommand
 from sslyze.synchronous_scanner import SynchronousScanner
 from cryptography.hazmat.primitives.serialization import Encoding
-
+from sslyze.ssl_settings import TlsWrappedProtocolEnum
 
 class IDontSpeaksSSLScanner():
 
@@ -28,17 +28,21 @@ class IDontSpeaksSSLScanner():
 
 	def test_server_connectivity(self, address, port, service_type=None):
 		if(service_type):
-			cprint("Type undefined for {} port: {}".format(address, port), 'yellow')
+			server_tester = ServerConnectivityTester(
+				hostname=address,
+				port=port,
+				tls_wrapped_protocol=service_type
+			)
 		else:
 			server_tester = ServerConnectivityTester(
 				hostname=address,
 				port=port
 			)
-			try:
-				server_info = server_tester.perform()
-				return server_info
-			except ServerConnectivityError as e:
-				cprint("Error: {}".format(e), "yellow")
+		try:
+			server_info = server_tester.perform()
+			return server_info
+		except ServerConnectivityError as e:
+			cprint("Error: {}, host: {}, port: {}".format(e.error_message, address, port), "yellow")
 		return None
 
 	def run_cipher_suite_commands(self, server_info, synchronous_scanner):
@@ -57,7 +61,8 @@ class IDontSpeaksSSLScanner():
 			for cipher in scan_result.accepted_cipher_list:
 				ciphers.append({
 						"name":cipher.name,
-						"key_size":cipher.key_size
+						"key_size":cipher.key_size,
+						"is_anonymous": cipher.is_anonymous
 					})
 			cipher_scan_results[scan_result.scan_command.get_title()] = ciphers
 		#print('ciphers obtained for ',server_info)
@@ -186,6 +191,28 @@ class IDontSpeaksSSLScanner():
 		full_scan_results["Session Resumption"] = self.run_session_resumption_command(server_info, synchronous_scanner)
 		return full_scan_results
 
+	def get_protocol_id(self, protocol):
+		if(protocol == "PLAIN_TLS"):
+			return TlsWrappedProtocolEnum.PLAIN_TLS
+		if(protocol == "HTTPS"):
+			return TlsWrappedProtocolEnum.HTTPS
+		if(protocol == "STARTTLS_SMTP"):
+			return TlsWrappedProtocolEnum.STARTTLS_SMTP
+		if(protocol == "STARTTLS_XMPP_SERVER"):
+			return TlsWrappedProtocolEnum.STARTTLS_XMPP_SERVER
+		if(protocol == "STARTTLS_FTP"):
+			return TlsWrappedProtocolEnum.STARTTLS_FTP
+		if(protocol == "STARTTLS_POP3"):
+			return TlsWrappedProtocolEnum.STARTTLS_POP3
+		if(protocol == "STARTTLS_LDAP"):
+			return TlsWrappedProtocolEnum.STARTTLS_LDAP
+		if(protocol == "STARTTLS_IMAP"):
+			return TlsWrappedProtocolEnum.STARTTLS_IMAP
+		if(protocol == "STARTTLS_RDP"):
+			return TlsWrappedProtocolEnum.STARTTLS_RDP
+		if(protocol == "STARTTLS_POSTGRES"):
+			return TlsWrappedProtocolEnum.STARTTLS_POSTGRES
+
 	def scan_target(self, queue):
 		while(not queue.empty()):
 			scan = {}
@@ -193,8 +220,17 @@ class IDontSpeaksSSLScanner():
 			cprint("[-] {}/{} Scanning {}".format(target_id, target_nb, target), 'blue')
 			target_address = target["host"]
 			target_port = target["port"]
-			#target_proto = target["proto"]
-			server_info = self.test_server_connectivity(target_address, target_port)
+			if("protocol" in target.keys()):
+				server_info = self.test_server_connectivity(
+					target_address,
+					target_port,
+					service_type=self.get_protocol_id(target["protocol"])
+					)
+			else:
+				server_info = self.test_server_connectivity(
+					target_address,
+					target_port
+					)
 			if(server_info):
 				scan["_".join([target_address, target_port])] = self.run_sslyze_commands(server_info)
 			else:
