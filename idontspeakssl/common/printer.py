@@ -1,5 +1,6 @@
 from termcolor import colored, cprint
 
+
 def print_start_message():
 	cprint("#####################", 'white')
 	cprint("#                   #", 'white')
@@ -7,6 +8,6 @@ def print_start_message():
 	cprint("#                   #", 'white')
 	cprint("#####################", 'white')
 	print()
-	cprint("IDontSpeakSSL is a simple script to parse TO UPDAAAAAAAAAAAAATE results", 'white')
+	cprint("IDontSpeakSSL is tool working on sslyze ouput and generating HTML report", 'white')
 	cprint("and highlight important findings that need to be reported.", 'white')	
 	print()
