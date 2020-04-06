@@ -81,7 +81,7 @@ def generateReportFromScan(path):
     report = Report(path, targetlist)
     report.createReport()
 
-def run_scanner(output_directory, scope, nb_worker, report_format):
+def run_scanner(output_directory, scope, nb_worker):
 	print_start_message()
 	result_directory = prepare_output_directory(output_directory, scope)
 	scanner = IDontSpeaksSSLScanner(result_directory, scope, nb_worker)
@@ -105,8 +105,7 @@ def print_help_msg(command):
 @click.option('-o', '--output', 'output', help='Output directory where scans will be saved', type=click.Path(exists=True, file_okay=False, dir_okay=True, writable=True), required=True)
 @click.option('-w', 'nb_worker', help='number of workers. Number of scan to run at the same time. By default defined to 8', default=8)
 @click.option('-r', 'status_file_path', help='Generate a report from scan files. Take a path to the scan folder.')
-@click.option("--format", "report_format", multiple=True, default=["web",'textile'])
-def run(target_file, target_string, output, nb_worker, status_file_path, report_format, nmap_file):
+def run(target_file, target_string, output, nb_worker, status_file_path, nmap_file):
 	if(status_file_path):
 		print('Not working yet')
 		generateReportFromScan(status_file_path)
@@ -120,6 +119,6 @@ def run(target_file, target_string, output, nb_worker, status_file_path, report_
 			print("Missing needed options.")
 			print_help_msg(run)
 			exit()
-		run_scanner(output, scope, nb_worker, report_format)
+		run_scanner(output, scope, nb_worker)
 if __name__ == "__main__":
 	run()
