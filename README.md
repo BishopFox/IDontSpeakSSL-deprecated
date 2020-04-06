@@ -1,9 +1,8 @@
 # IDontSpeakSSL
 
-IDontSpeakSSL is a simple script to parse testssl.sh results. It is designed to automate the discovery of bad practices for SSL/TLS configurations, cipher suites, and certificates.
+IDontSpeakSSL is a simple script based on sslyze SSL/TLS scanner. It is designed to automate the discovery of bad practices for SSL/TLS configurations, cipher suites, and certificates.
 It is useful on a large scope, for example during internal penetration testing or external testing on a large scope.
 
-For more information on testssl.sh, see [testssl.sh](https://testssl.sh/).
 
 
 ![Usage Example](https://raw.githubusercontent.com/BishopFox/IDontSpeakSSL/master/img/exec.png)
@@ -11,24 +10,12 @@ For more information on testssl.sh, see [testssl.sh](https://testssl.sh/).
 
 ## Download the Script
 
-The testssl.sh script is embedded as a submodule. In order to properly download the IDontSpeakSSL script, use the following git commands:
+`pip3 install --user git+ssh://git@github.com/BishopFox/IDontSpeakSSL.git`
 
-```
-git clone https://github.com/BishopFox/IDontSpeakSSL.git --recursive
-```
 or
-```
-git clone https://github.com/BishopFox/IDontSpeakSSL.git
-git submodule update --init --recursive
-```
 
-## Install Requirements
+`git clone git@github.com:BishopFox/IDontSpeakSSL.git && pip3 install --user IDontSpeakSSL/`
 
-To fetch the necessary libraries, use the following command:
-
-```
-pip3 install -r requirements.txt
-```
 
 ## Usage
 
@@ -44,6 +31,7 @@ Here are some examples of how to use IDontSpeakSSL:
 
 ```
 python3 IDontSpeakSSL.py -f scope.txt
+python3 IDontSpeakSSL.py -n nmap_scan_result.xml
 python3 IDontSpeakSSL.py -i www.google.com,www.facebook.com,10.0.0.1
 python3 IDontSpeakSSL.py -f scope.txt -i www.facebook.com,10.0.0.1
 python3 IDontSpeakSSL.py -f scope.txt -d result/directory
@@ -65,12 +53,6 @@ www.example.com:8000
 
 If a port other than 443 should be scanned, the port number must be added after the IP address or the domain name, separated with a colon.
 No URL should be set with a scheme. For example, `https://www.example.com` will produce an error.
-
-## Configuration Files
-
-This script will read configuration files located in the `config` folder. The configuration files follow the CSV format. Each line of this configuration file is split into five columns and organized as follows:
-
-| Name of the test | Output file of the test | Regular expression Base64-encoded  | Title of the finding | Description of the finding |
 
 
 ## Example Report
