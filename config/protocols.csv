@@ -1,2 +1,0 @@
-SSLv2,SSLv2.txt,IFNTTHYyICtvZmZlcmVk,SSL version 2,SSL version must notbe used as it is affected by vulnerabilities such as DROWN
-SSLv3,SSLv3.txt,IFNTTHYzICtvZmZlcmVk,SSL version 3,SSL version must notbe used as it is affected by vulnerabilities such as POODLE

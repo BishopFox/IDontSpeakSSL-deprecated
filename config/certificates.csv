@@ -1,5 +1,0 @@
-EXPIRED,CertificateExpired.txt,Q2VydGlmaWNhdGUgVmFsaWRpdHkgXChVVENcKSArZXhwaXJlZA==,Expired Certificate,The certificate is expired and should not be trusted.
-SERVERKEYSIZERSA,ServerKeySizeRSA.txt,U2VydmVyIGtleSBzaXplICtSU0EgKD8hMjA0OHw0MDk2fDgxOTIp,Insufficient Certificate Key Size (RSA),The key used by the server is too small. The size of the key should be at least 2048 bits.
-SERVERKEYSIZEEC,ServerKeySizeEC.txt,U2VydmVyIGtleSBzaXplICtFQyAoPyEyNTYp,Insufficient Certificate Key Size (Elliptic Curves),The key used by the server is too small. For elliptic curves the size of the key should at least be 224 bits. https://www.globalsign.com/en/blog/elliptic-curve-cryptography/
-SIGNALGO,SignatureAlgorithm.txt,U2lnbmF0dXJlIEFsZ29yaXRobSArKD86TUQ1fFNIQTEp,Insecure Certificate Signature Algorithm,The algorithm used to sign the server certificate is not strong enough and modern browsers will raise an alert. MD5 and SHA-1 should not be used solely.
-HOSTNAME,HostnameDoNotMatchURI.txt,VHJ1c3QgXChob3N0bmFtZVwpICtjZXJ0aWZpY2F0ZSBkb2VzIG5vdCBtYXRjaCBzdXBwbGllZCBVUkk=,Invalid Certificate Domain,The hostname in the scope and the domain name in the certificate are not the same.
